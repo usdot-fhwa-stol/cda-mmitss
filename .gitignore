@@ -20,6 +20,8 @@ cmake*
 
 CMake*
 
+*.pyc
+
 
 *.map.payload
 *.log
