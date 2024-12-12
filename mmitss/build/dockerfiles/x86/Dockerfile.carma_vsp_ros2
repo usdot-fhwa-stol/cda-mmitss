@@ -5,6 +5,40 @@
 FROM mmitssuarizona/mmitss-x86-base:2.1
 MAINTAINER S Cornejo (donaldcunningham@email.arizona.edu)
 
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
+
+RUN apt update && apt install -y curl gnupg2 lsb-release
+RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key  -o /usr/share/keyrings/ros-archive-keyring.gpg
+
+RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
+
+RUN apt update
+RUN DEBIAN_FRONTEND=noninteractive apt install -y ros-foxy-desktop
+RUN apt-get -y update
+RUN apt-get -y install git
+
+WORKDIR /root/dev_ws/src
+RUN git clone https://github.com/ros/ros_tutorials.git -b foxy-devel
+WORKDIR /root/dev_ws
+
+
+RUN apt-get install python3-rosdep -y
+RUN rosdep init
+RUN rosdep update
+RUN rosdep install --from-paths src --ignore-src -r -y --rosdistro foxy
+
+RUN apt install python3-colcon-common-extensions -y
+
+RUN . /opt/ros/foxy/setup.sh && colcon build --allow-overriding turtlesim  
+COPY build/dockerfiles/x86/ros2_entrypoint.sh /mmitss
+RUN sudo chmod 755 /mmitss/ros2_entrypoint.sh
+
+WORKDIR /app
+RUN git clone https://github.com/usdot-fhwa-stol/carma-msgs.git
+WORKDIR /app/carma-msgs
+RUN colcon build --packages-up-to carma_driver_msgs
+
 
 COPY build/bin/CarmaDecoderRos2/x86/M_CarmaMsgDecoder /mmitss
 COPY build/bin/CarmaEncoderRos2/x86/M_CarmaMsgEncoder /mmitss
